@@ -10,6 +10,8 @@ RED='\033[0;31m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+cp vite.github vite.config.ts
+
 echo -e "${YELLOW}Starting GitHub Pages deployment...${NC}"
 
 # Clean previous build
@@ -43,3 +45,4 @@ echo -e "${GREEN}Deployment complete!${NC}"
 echo -e "${GREEN}======================================${NC}"
 echo -e "Your site will be available at your GitHub Pages URL shortly"
 
+cp vite.npm vite.config.ts
