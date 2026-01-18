@@ -1,0 +1,190 @@
+import { useState } from 'react';
+import './App.css';
+
+// Define types
+type SleepStage = 'awake' | 'rem' | 'light' | 'deep';
+
+type TimeData = {
+  hours: string;
+  minutes: string;
+};
+
+type SleepData = {
+  [key in SleepStage]: TimeData;
+};
+
+interface SleepStageInfo {
+  key: SleepStage;
+  label: string;
+  color: string;
+}
+
+function App() {
+  const [sleepData, setSleepData] = useState<SleepData>({
+    awake: { hours: '0', minutes: '0' },
+    rem: { hours: '0', minutes: '0' },
+    light: { hours: '0', minutes: '0' },
+    deep: { hours: '0', minutes: '0' }
+  });
+
+  const handleTimeChange = (stage: SleepStage, field: keyof TimeData, value: string) => {
+    // Ensure value is numeric and within valid ranges
+    let newValue = value.replace(/[^0-9]/g, '');
+    
+    if (field === 'hours' && newValue.length > 0) {
+      newValue = Math.min(23, parseInt(newValue, 10)).toString();
+    } else if (field === 'minutes' && newValue.length > 0) {
+      newValue = Math.min(59, parseInt(newValue, 10)).toString();
+    }
+
+    setSleepData(prev => ({
+      ...prev,
+      [stage]: {
+        ...prev[stage],
+        [field]: newValue
+      }
+    }));
+  };
+
+  const calculateMinutes = (stage: SleepStage): number => {
+    const hours = parseInt(sleepData[stage].hours || '0', 10);
+    const minutes = parseInt(sleepData[stage].minutes || '0', 10);
+    return hours * 60 + minutes;
+  };
+
+  const calculateTotalSleepMinutes = (): number => {
+    const remMinutes = calculateMinutes('rem');
+    const lightMinutes = calculateMinutes('light');
+    const deepMinutes = calculateMinutes('deep');
+    return remMinutes + lightMinutes + deepMinutes;
+  };
+
+  const calculateEfficiency = (): number => {
+    const totalSleep = calculateTotalSleepMinutes();
+    const awakeMinutes = calculateMinutes('awake');
+    const totalTime = totalSleep + awakeMinutes;
+    
+    if (totalTime === 0) return 0;
+    return (totalSleep / totalTime) * 100;
+  };
+
+  const formatTimeDisplay = (minutes: number): string => {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+  };
+
+  const sleepStages: SleepStageInfo[] = [
+    { key: 'awake', label: 'Awake', color: '#f44336' },
+    { key: 'rem', label: 'REM Sleep', color: '#2196f3' },
+    { key: 'light', label: 'Light Sleep', color: '#4caf50' },
+    { key: 'deep', label: 'Deep Sleep', color: '#673ab7' }
+  ];
+
+  return (
+    <div className="app">
+      <header className="header">
+        <h1>Sleep Stage Tracker</h1>
+        <p className="subtitle">Enter time spent in each sleep stage to calculate sleep efficiency</p>
+      </header>
+
+      <div className="dashboard">
+        <div className="input-section">
+          <h2>Sleep Stages Input</h2>
+          <div className="time-inputs">
+            {sleepStages.map(({ key, label, color }) => (
+              <div key={key} className="time-input-group" style={{ borderLeft: `4px solid ${color}` }}>
+                <h3 style={{ color }}>{label}</h3>
+                <div className="input-row">
+                  <div className="input-group">
+                    <label>Hours</label>
+                    <input
+                      type="text"
+                      value={sleepData[key].hours}
+                      onChange={(e) => handleTimeChange(key, 'hours', e.target.value)}
+                      maxLength={2}
+                      placeholder="HH"
+                    />
+                  </div>
+                  <span className="colon">:</span>
+                  <div className="input-group">
+                    <label>Minutes</label>
+                    <input
+                      type="text"
+                      value={sleepData[key].minutes}
+                      onChange={(e) => handleTimeChange(key, 'minutes', e.target.value)}
+                      maxLength={2}
+                      placeholder="MM"
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="results-section">
+          <h2>Results</h2>
+          
+          <div className="minutes-display">
+            {sleepStages.map(({ key, label, color }) => (
+              <div key={key} className="result-card" style={{ borderColor: color }}>
+                <div className="result-label">{label} Minutes</div>
+                <div className="result-value">
+                  {formatTimeDisplay(calculateMinutes(key))} 
+                  <span className="minutes-text"> ({calculateMinutes(key)} min)</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="summary-cards">
+            <div className="summary-card total-sleep">
+              <div className="summary-label">Total Sleep Minutes</div>
+              <div className="summary-value">
+                {formatTimeDisplay(calculateTotalSleepMinutes())}
+                <span className="summary-detail"> ({calculateTotalSleepMinutes()} min)</span>
+              </div>
+              <div className="breakdown">
+                REM: {calculateMinutes('rem')}min + 
+                Light: {calculateMinutes('light')}min + 
+                Deep: {calculateMinutes('deep')}min
+              </div>
+            </div>
+
+            <div className="summary-card efficiency">
+              <div className="summary-label">Sleep Efficiency</div>
+              <div className="summary-value">
+                {calculateEfficiency().toFixed(2)}%
+              </div>
+              <div className="efficiency-bar">
+                <div 
+                  className="efficiency-fill"
+                  style={{ width: `${Math.min(100, calculateEfficiency())}%` }}
+                />
+              </div>
+              <div className="efficiency-formula">
+                Sleep Minutes / (Sleep + Awake Minutes) × 100
+              </div>
+            </div>
+          </div>
+
+          <div className="stats-info">
+            <h3>Sleep Stage Information</h3>
+            <ul>
+              <li><strong>Awake:</strong> Time spent awake during the night</li>
+              <li><strong>REM Sleep:</strong> Rapid Eye Movement sleep (dream sleep)</li>
+              <li><strong>Light Sleep:</strong> Transition between wakefulness and deep sleep</li>
+              <li><strong>Deep Sleep:</strong> Slow-wave sleep, most restorative stage</li>
+            </ul>
+            <p className="note">
+              Note: Sleep efficiency is calculated as (Total Sleep) / (Total Sleep + Awake Time) × 100%
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default App;
